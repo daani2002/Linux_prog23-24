@@ -8,6 +8,11 @@
 void list_directory(char* name)
 {
     DIR* dirptr=opendir(name);
+    //hiba megnyitáskor (pl. nincs ilyen directory)
+    if(dirptr==NULL){
+        printf("Nem sikerült megnyitni a könyvtárat!\n");
+        return ;
+        }
     struct dirent *dit;
     char path[PATH_MAX];
     int status;
@@ -56,8 +61,11 @@ void list_directory(char* name)
 
 int main(int argc, char* argv[])
 {
-
-    //megadom a listázandó könyvtár nevét
+    //nincs megadva parméter
+    if(argc < 2)
+        printf("Adja meg a törlendő könyvtár nevét\n");
+    else
+    //átadom a listázandó könyvtár nevét
     list_directory(argv[1]);
     
     return 0;
