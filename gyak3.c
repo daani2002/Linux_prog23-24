@@ -4,6 +4,7 @@
 #include <string.h>
 #include <limits.h>
 
+//törli a paraméterként megadott könyvtár tartalmát
 void list_directory(char* name)
 {
     DIR* dirptr=opendir(name);
@@ -11,9 +12,13 @@ void list_directory(char* name)
     char path[PATH_MAX];
     int status;
     
+    //kiolvason a fájlfolyam következő elemét
     while((dit = readdir(dirptr)) != NULL){
+        //elérési út szerkesztése: fájlnév/könyvtár
         snprintf(path, sizeof(path), "%s/%s", name, dit->d_name);
+        //külön kezelem a fájlt és könyvtárat
         switch(dit->d_type){
+            //regular file, törlöm
             case DT_REG:
                 printf("name:%s/%s\t", name, dit->d_name);
                 printf("type: DT_REG\n");
@@ -23,7 +28,9 @@ void list_directory(char* name)
                 else
                     printf("nem sikerült törölni!");
             break;
+            //könytárba belépek, törlöm a fájlokat rekurzív hívással
             case DT_DIR:
+            // . .. könyvtárakat kihagyom
             if(strcmp(dit->d_name,".") && strcmp(dit->d_name,".."))
             {
                 printf("name:%s/%s\t", name, dit->d_name);
@@ -39,6 +46,7 @@ void list_directory(char* name)
         closedir(dirptr);
         }
         
+    //bezárás után törlöm az aktuális könytárat is
     status=remove(name);
     if(status==0)
         printf("mappa törölve\n");
