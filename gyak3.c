@@ -46,11 +46,11 @@ void list_directory(char* name)
         printf("nem sikerült törölni!");
 }
 
-int main()
+int main(int argc, char* argv[])
 {
 
     //megadom a listázandó könyvtár nevét
-    list_directory("test");
+    list_directory(argv[1]);
     
     return 0;
 }
