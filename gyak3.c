@@ -19,7 +19,7 @@ void list_directory(char* name)
     
     //kiolvason a fájlfolyam következő elemét
     while((dit = readdir(dirptr)) != NULL){
-        //elérési út szerkesztése: fájlnév/könyvtár
+        //elérési út szerkesztése: könyvtár/fájlnév
         snprintf(path, sizeof(path), "%s/%s", name, dit->d_name);
         //külön kezelem a fájlt és könyvtárat
         switch(dit->d_type){
