@@ -22,7 +22,6 @@ int main(int argc, char* argv[])
   int csock;
   char buf[1024];
   int len;
-  char PORT[5];
   
   // Poll-t használunk a standard bemenetre és kliens socket-re
   struct pollfd fds[2];
@@ -32,8 +31,6 @@ int main(int argc, char* argv[])
     printf("Használat: %s <szerver><port>\n", argv[0]);
     return 1;
   }
-  // Beolvassuk a portszámot
-  strcpy(PORT, argv[2]);
 
   /* kitöltjük a hints struktúrát */
   memset(&hints, 0, sizeof(hints));
@@ -41,7 +38,7 @@ int main(int argc, char* argv[])
   hints.ai_socktype = SOCK_STREAM;
 
   /* végezzük el a névfeloldást */
-  err = getaddrinfo(argv[1], PORT, &hints, &res);
+  err = getaddrinfo(argv[1], argv[2], &hints, &res);
   if(err != 0)
   {
     fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(err));
