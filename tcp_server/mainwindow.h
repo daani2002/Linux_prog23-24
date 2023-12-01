@@ -17,7 +17,7 @@ public:
 
 public slots:
     void SetText();
-    void packageDisplay(char*, int);
+    void textDisplay(QString);
 
 public:
     Ui::MainWindow *ui;

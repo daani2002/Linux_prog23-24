@@ -18,7 +18,7 @@ public:
 
 signals:
     void serverStarted();
-    void packageReceived(char*, int);
+    void textReceived(QString);
 
 public slots:
     void slotIncomingConn();
@@ -28,6 +28,7 @@ public slots:
 protected:
     QTcpServer* m_pServSocket;
     QTcpSocket* m_pSocket[MaxClientNum];
+    QString     userName[MaxClientNum];
 
     // Temporalis buffer az erkezo adatok tarolasara.
     char buf[1024];

@@ -19,7 +19,7 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-    void getUserName();
+    void readUserName();
 
 signals:
 
@@ -27,6 +27,7 @@ public slots:
     void slotConnectionStatus(int);
     void returnPressed();
     void packageReceived(QString str);
+    void newUserItem(QString);
 
 private:
     Ui::MainWindow *ui;

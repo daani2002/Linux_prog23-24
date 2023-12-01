@@ -10,18 +10,29 @@ class NetHandler : public QObject
 
 public:
     enum ConnStatus { Error, Connecting, Connected, Disconnected };
+
+    enum MessageType {ClientGreeting,   // Kliens közli a szerverrel a felhasználónevet
+                      ServerGreeting,   // Szerver közli a többi felhasználó nevét
+                      NewClient,        // Új kliens csatlakozott, közölte nevét
+                      ClientLeft,       // Egy kliens lecsatlakozott a szerverről
+                      PlainText};       // Üzenet küldése a megadott címzetteknek
 public:
     explicit NetHandler(QObject *parent = 0);
     virtual ~NetHandler();
+
     void Connect(QString addr);
+    void setUserName(QString username){userName = username;}
+    QString getUserName(){return userName;}
 
 signals:
     void signalConnectionStatus(int status);
     void packageReceived(QString str);
+    void newUserItem(QString);
 
 public slots:
     void slotReadyRead();
     void packageSend(QString str);
+    void sendMessage(MessageType msgType, QString str);
     void slotDisconnected();
 
 protected:

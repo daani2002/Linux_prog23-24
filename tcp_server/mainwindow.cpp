@@ -11,14 +11,14 @@ MainWindow::MainWindow(QWidget *parent)
 
     m_pServer->StartServer();
     //debug
-    connect(ui->pushButton, SIGNAL(clicked),
-            m_pServer, SLOT(slotReadyRead));
+    //connect(ui->pushButton, SIGNAL(clicked),
+      //      m_pServer, SLOT(slotReadyRead));
     // Jelezzük a szerver elindulását
     connect(m_pServer, SIGNAL(serverStarted),
             this, SLOT(SetText));
     // Jelezzük az üzenet érkezését
-    connect(m_pServer, &Server::packageReceived,
-            this, &MainWindow::packageDisplay);
+    connect(m_pServer, &Server::textReceived,
+            this, &MainWindow::textDisplay);
 
     ui->label->setText("Szerver teszt");
 }
@@ -30,10 +30,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::SetText(){ui->textEdit->append("csomag érkezett");}
 
-void MainWindow::packageDisplay(char* buf, int len)
+void MainWindow::textDisplay(QString str)
 {
-   QByteArray ba(buf, len);
-    QString str(ba);
-
     ui->textEdit->append(str);//append("uezenet erkezett");
 }

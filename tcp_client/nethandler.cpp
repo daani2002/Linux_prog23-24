@@ -51,7 +51,6 @@ void NetHandler::Connect(QString addr)
 
     // Jelezzuk a kapcsolat allapotanak valtozasat, vagyis hogy sikerult.
     emit signalConnectionStatus(Connected);
-
 }
 
 // A kapcsolat lezarasanak erzekelese.
@@ -83,9 +82,35 @@ void NetHandler::slotReadyRead()
     QByteArray bytearray(buf, len);
     QString str(bytearray);
 
-    emit packageReceived(str);
+        emit packageReceived(str);
+
+    int j = 0;
+    j = str.indexOf(">", 0);
+    // Kiolvassuk a kapott üzenet típusát, csonkoljuk az üzenetet
+    QString msgType = str;
+    msgType.resize(j+1);
+    str.remove(0, j+1);
+
+    // ServerGreeting: közölték a többi user nevét
+    if(msgType == "<1>")
+    {
+        QString newWidgetItem;
+        while((j = str.indexOf(">", 0)) != -1)
+        {
+            // Leválasztom a user neveket
+            newWidgetItem = str;
+            newWidgetItem.resize(j+1);
+                emit packageReceived("user: "+newWidgetItem);
+            str.remove(0, j+1);
+                emit packageReceived("maradék msg: "+str);
+            // Jelzek a widgetItem-nek
+            emit newUserItem(newWidgetItem);
+        }
+    }
+
 }
 
+// Egy adat csomag küldésére szolgál
 void NetHandler::packageSend(QString str)
 {
     // QString -> char konverzió
@@ -94,6 +119,32 @@ void NetHandler::packageSend(QString str)
     const char *c_str2 = ba.data();
 
     m_pSocket->write(c_str2);
+}
+
+// Az üzenet típusának megfelelő csomagokat küldünk,
+// először a csomag azonosítója, majd paraméterek
+// str-be helyezzük korábban a cél User-eket
+void NetHandler::sendMessage(MessageType msgType, QString str)
+{
+    switch(msgType)
+    {
+    case ClientGreeting:
+        str.insert(0, "<0><");
+        str.append(">");
+        packageSend(str);
+        break;
+    case ServerGreeting:
+        break;
+    case NewClient:
+        break;
+    case ClientLeft:
+        break;
+    case PlainText:
+        str.insert(0, "<4><username><");
+        str.append(">");
+        packageSend(str);
+        break;
+    }
 }
 
 

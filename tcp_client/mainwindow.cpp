@@ -10,7 +10,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_pNetHandler = new NetHandler(this);
 
     // felhasználónév bekérése
-    getUserName();
+    readUserName();
 
     // Csatlakozás állapotának kijelzése
     connect(m_pNetHandler, SIGNAL(signalConnectionStatus(int)),
@@ -21,6 +21,9 @@ MainWindow::MainWindow(QWidget *parent)
     // Szöveg érkezett - megjelenítés
     connect(m_pNetHandler, &NetHandler::packageReceived,
             this, &MainWindow::packageReceived);
+    // Felhasználólista bővítése
+    connect(m_pNetHandler, &NetHandler::newUserItem,
+            this, &MainWindow::newUserItem);
 }
 
 MainWindow::~MainWindow()
@@ -44,6 +47,8 @@ void MainWindow::slotConnectionStatus(int status)
         break;
     case NetHandler::Connected:
         statusBar()->showMessage("Connected");
+        // A köszöntő üzenetben közöljük a szerverrel a nevünket
+        m_pNetHandler->sendMessage(NetHandler::ClientGreeting, m_pNetHandler->getUserName());
         break;
     case NetHandler::Disconnected:
         statusBar()->showMessage("Disconnected");
@@ -70,7 +75,8 @@ void MainWindow::returnPressed()
     // Szöveg megjelenítése
     ui->textEdit->append(text);
     // Szöveg elküldése
-    m_pNetHandler->packageSend(text);
+    //m_pNetHandler->packageSend(text);
+    m_pNetHandler->sendMessage(NetHandler::PlainText, text);
 }
 
 void MainWindow::packageReceived(QString str)
@@ -87,6 +93,7 @@ void MainWindow::on_actionConnect_triggered()
       QLineEdit::Normal, "localhost", &ok);
     if(ok && !addr.isEmpty())
         m_pNetHandler->Connect(addr);
+
 }
 
 void MainWindow::on_actionStop_triggered()
@@ -94,17 +101,24 @@ void MainWindow::on_actionStop_triggered()
     m_pNetHandler->slotDisconnected();
 }
 
-void MainWindow::getUserName()
+void MainWindow::readUserName()
 {
     // Bekerjuk a választott felhasználó nevet
     bool ok;
     QString userName = QInputDialog::getText(this,
       "Username", "Please enter your username",
-      QLineEdit::Normal, "userame", &ok);
+      QLineEdit::Normal, "username", &ok);
     if(ok && !userName.isEmpty())
+    {
+        m_pNetHandler->setUserName(userName);
         ui->listWidget->addItem(userName);
+    }
 }
 
+void MainWindow::newUserItem(QString username)
+{
+    ui->listWidget->addItem(username);
+}
 
 
 
