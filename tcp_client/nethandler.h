@@ -26,6 +26,7 @@ public slots:
 
 protected:
     QTcpSocket* m_pSocket;
+    QString userName;
     char buf[1024];
 };
 

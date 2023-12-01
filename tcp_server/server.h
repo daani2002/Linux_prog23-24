@@ -5,6 +5,8 @@
 #include <QtNetwork>
 #include "mainwindow.h"
 
+static const int MaxClientNum = 20;
+
 class Server : public QObject
 {
     Q_OBJECT
@@ -21,11 +23,11 @@ signals:
 public slots:
     void slotIncomingConn();
     void slotDisconnected();
-    void slotReadyRead1();
+    void slotReadyRead();
 
 protected:
     QTcpServer* m_pServSocket;
-    QTcpSocket* m_pSocket1;
+    QTcpSocket* m_pSocket[MaxClientNum];
 
     // Temporalis buffer az erkezo adatok tarolasara.
     char buf[1024];

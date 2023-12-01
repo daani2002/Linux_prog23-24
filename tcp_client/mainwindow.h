@@ -19,6 +19,8 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+    void getUserName();
+
 signals:
 
 public slots:
@@ -32,6 +34,7 @@ private:
 
 private slots:
     void on_actionConnect_triggered();
+    void on_actionStop_triggered();
 
 };
 #endif // MAINWINDOW_H

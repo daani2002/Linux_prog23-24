@@ -9,6 +9,9 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     m_pNetHandler = new NetHandler(this);
 
+    // felhasználónév bekérése
+    getUserName();
+
     // Csatlakozás állapotának kijelzése
     connect(m_pNetHandler, SIGNAL(signalConnectionStatus(int)),
             this, SLOT(slotConnectionStatus(int)));
@@ -86,8 +89,21 @@ void MainWindow::on_actionConnect_triggered()
         m_pNetHandler->Connect(addr);
 }
 
+void MainWindow::on_actionStop_triggered()
+{
+    m_pNetHandler->slotDisconnected();
+}
 
-
+void MainWindow::getUserName()
+{
+    // Bekerjuk a választott felhasználó nevet
+    bool ok;
+    QString userName = QInputDialog::getText(this,
+      "Username", "Please enter your username",
+      QLineEdit::Normal, "userame", &ok);
+    if(ok && !userName.isEmpty())
+        ui->listWidget->addItem(userName);
+}
 
 
 

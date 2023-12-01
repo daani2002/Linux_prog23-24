@@ -6,6 +6,8 @@ Server::Server(QObject *parent) :
 {
     m_pServSocket = NULL;
 
+    for(int i = 0; i < MaxClientNum; i++)
+        m_pSocket[i] = NULL;
 }
 
 Server::~Server()
@@ -38,18 +40,16 @@ void Server::slotIncomingConn()
 {
     QTcpSocket* pSocket = m_pServSocket->nextPendingConnection();
 
-    if (m_pSocket1 != NULL) {
-        delete pSocket;
-        return;
-    }
-
     connect(pSocket, SIGNAL(disconnected()), this, SLOT(slotDisconnected()));
 
-    if (m_pSocket1 == NULL) {
-        m_pSocket1 = pSocket;
-        connect(m_pSocket1, SIGNAL(readyRead()), this, SLOT(slotReadyRead1()));
+    // 20 kapcsolatot fogadunk elsőkörben, mindig az első szabad socket pointert használjuk
+    for(int i = 0; i < MaxClientNum; i++)
+    if (m_pSocket[i] == NULL) {
+        m_pSocket[i] = pSocket;
+        connect(m_pSocket[i], SIGNAL(readyRead()), this, SLOT(slotReadyRead()));
+        m_pSocket[i]->write("sikeres kapcsolat");
+        break;
     }
-    m_pSocket1->write("sikeres kapcsolat");
 
 }
 
@@ -59,21 +59,26 @@ void Server::slotDisconnected()
     disconnect(this, SLOT(slotDisconnected()));
 
     // Ha letezik meg kliens socket akkor lezarjuk.
-    if (m_pSocket1) {
-        m_pSocket1->deleteLater();
-        m_pSocket1 = NULL;
+    for(int i = 0; i < MaxClientNum; i++)
+    if (m_pSocket[i] && !m_pSocket[i]->isOpen()) {
+        m_pSocket[i]->deleteLater();
+        m_pSocket[i] = NULL;
     }
 }
 
 // Csomag erkezesenek lekezelese.
-void Server::slotReadyRead1()
+void Server::slotReadyRead()
 {
-    // Temporalis bufferba olvasunk.
-    int len = m_pSocket1->read(buf, sizeof(buf));
-    // Loopback teszt
-    m_pSocket1->write(buf, len);
-    // Jelezzük az olvasást
-    emit packageReceived(buf, len);
+    for(int i = 0; i < MaxClientNum; i++){
+    if(m_pSocket[i] != NULL && m_pSocket[i]->bytesAvailable()){
+        // Temporalis bufferba olvasunk.
+        int len = m_pSocket[i]->read(buf, sizeof(buf));
+        // Loopback teszt
+        m_pSocket[i]->write(buf, len);
+        // Jelezzük az olvasást
+        emit packageReceived(buf, len);
+    }
+    }
 }
 
 
