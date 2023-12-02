@@ -130,7 +130,7 @@ void MainWindow::setDestination(QListWidgetItem* item)
 {
     QString name = item->text();
     // Ha magunkat címezzük
-    if(ui->listWidget->currentItem() == item)
+    if(ui->listWidget->currentRow() == 0)
     {
         ui->label->setText("Üzenet magamnak:");
         // levágjuk a " (te)" végződéset
