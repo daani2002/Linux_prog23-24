@@ -36,6 +36,7 @@ private:
 private slots:
     void on_actionConnect_triggered();
     void on_actionStop_triggered();
+    void setDestination(QListWidgetItem* item);
 
 };
 #endif // MAINWINDOW_H

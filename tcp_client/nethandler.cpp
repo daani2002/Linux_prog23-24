@@ -4,6 +4,7 @@ NetHandler::NetHandler(QObject *parent) :
     QObject(parent)
 {
     m_pSocket = NULL;
+    destinationName = "notregistered";
 }
 
 NetHandler::~NetHandler()
@@ -82,7 +83,7 @@ void NetHandler::slotReadyRead()
     QByteArray bytearray(buf, len);
     QString str(bytearray);
 
-        emit packageReceived(str);
+        //emit packageReceived("raw: "+str);
 
     int j = 0;
     j = str.indexOf(">", 0);
@@ -92,6 +93,7 @@ void NetHandler::slotReadyRead()
     str.remove(0, j+1);
 
     // ServerGreeting: közölték a többi user nevét
+    // <1><name1><name2><name3>...
     if(msgType == "<1>")
     {
         QString newWidgetItem;
@@ -100,12 +102,49 @@ void NetHandler::slotReadyRead()
             // Leválasztom a user neveket
             newWidgetItem = str;
             newWidgetItem.resize(j+1);
-                emit packageReceived("user: "+newWidgetItem);
+            newWidgetItem.chop(1);
+            newWidgetItem.remove(0, 1);
+                //emit packageReceived("user: "+newWidgetItem);
             str.remove(0, j+1);
-                emit packageReceived("maradék msg: "+str);
+                //emit packageReceived("maradék msg: "+str);
             // Jelzek a widgetItem-nek
             emit newUserItem(newWidgetItem);
         }
+    }
+    // SNewClient: új kliens csatlakozott, közölte a nevét
+    // <2><new username>
+    if(msgType == "<2>")
+    {
+        QString newWidgetItem;
+        j = str.indexOf(">", 0);
+        // Leválasztom a user nevet
+        newWidgetItem = str;
+        newWidgetItem.resize(j+1);
+        newWidgetItem.chop(1);
+        newWidgetItem.remove(0, 1);
+            //emit packageReceived("user: "+newWidgetItem);
+
+             //emit packageReceived("maradék msg: "+str);
+
+        // Kiírom az új user érkezését
+        emit packageReceived("Új felhasználó csatlakozott: " + newWidgetItem);
+        // Jelzek a widgetItem-nek
+        emit newUserItem(newWidgetItem);
+    }
+
+    // PlainText: egyszerű üzenet érkezett
+    // <4><Küldő><Üzenet>
+    if(msgType == "<4>")
+    {
+        // Leválasztom a küldő nevét
+        j = str.indexOf(">", 0);
+        QString Sender = str;
+        Sender.resize(j);
+        str.remove(0, j+1);
+        str.remove(0, 1);
+        str.chop(1);
+
+        emit packageReceived(Sender + " to you>: " + str);
     }
 
 }
@@ -140,7 +179,8 @@ void NetHandler::sendMessage(MessageType msgType, QString str)
     case ClientLeft:
         break;
     case PlainText:
-        str.insert(0, "<4><username><");
+        str.insert(0, "<4>");
+        str.insert(3, "<" + destinationName + "><");
         str.append(">");
         packageSend(str);
         break;

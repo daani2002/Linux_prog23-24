@@ -24,6 +24,10 @@ MainWindow::MainWindow(QWidget *parent)
     // Felhasználólista bővítése
     connect(m_pNetHandler, &NetHandler::newUserItem,
             this, &MainWindow::newUserItem);
+    // Cél felhasználó kiválasztása a listából kattintásra
+    connect(ui->listWidget, &QListWidget::itemClicked,
+            this, &MainWindow::setDestination);
+
 }
 
 MainWindow::~MainWindow()
@@ -73,7 +77,7 @@ void MainWindow::returnPressed()
     // Töröljük a beírt szöveget
     ui->lineEdit->clear();
     // Szöveg megjelenítése
-    ui->textEdit->append(text);
+    ui->textEdit->append("<from you to " + m_pNetHandler->getDestinationName() + "> " + text);
     // Szöveg elküldése
     //m_pNetHandler->packageSend(text);
     m_pNetHandler->sendMessage(NetHandler::PlainText, text);
@@ -111,14 +115,41 @@ void MainWindow::readUserName()
     if(ok && !userName.isEmpty())
     {
         m_pNetHandler->setUserName(userName);
-        ui->listWidget->addItem(userName);
+        ui->listWidget->addItem(userName + " (te)");
     }
 }
 
+// Új username felvétele a listába
 void MainWindow::newUserItem(QString username)
 {
     ui->listWidget->addItem(username);
 }
+
+// Cél user beállítása a kiválasztott listaelem alapján
+void MainWindow::setDestination(QListWidgetItem* item)
+{
+    QString name = item->text();
+    // Ha magunkat címezzük
+    if(ui->listWidget->currentItem() == item)
+    {
+        ui->label->setText("Üzenet magamnak:");
+        // levágjuk a " (te)" végződéset
+        name.chop(5);
+        m_pNetHandler->setDestinationName(name);
+    }
+    else
+    {
+        ui->label->setText("Üzenet " + item->text() + "-nek:");
+        m_pNetHandler->setDestinationName(item->text());
+    }
+}
+
+
+
+
+
+
+
 
 
 

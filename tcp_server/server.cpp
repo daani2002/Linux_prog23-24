@@ -83,7 +83,7 @@ void Server::slotReadyRead()
         QByteArray ba(buf, len);
         QString str(ba);
             // Jelezzük az olvasást a megjelenítő ablaknak
-            emit textReceived(str);
+            emit textReceived("in: " + str);
 
         int j = 0;
         j = str.indexOf(">", 0);
@@ -92,38 +92,64 @@ void Server::slotReadyRead()
         msgType.resize(j+1);
         str.remove(0, j+1);
 
-        // ClientGreeting: közölték a sockethez tartozófelhasználónevet
+        // ClientGreeting: közölték a sockethez tartozó felhasználónevet
+        // Visszaküldjük a többiek nevét
+        // A többieknek elküldjük az új user nevét
         if(msgType == "<0>")
         {
+            // Kivesszük a keretből
+            str.remove(0, 1);
+            str.chop(1);
             // Elmentjük a socket indexén
             userName[i] = str;
-            // Visszaküldjük a többi felhasználónevet
+            // Összeírjuk a többi felhasználónevet
             QString otherUsers;
             for(int x = 0; x < MaxClientNum; x++)
                 if(m_pSocket[x] != NULL)
-                    otherUsers.append(userName[x]);
+                    otherUsers.append("<" + userName[x] + ">");
 
-            // ServerGreeting típusú üzenet
+            // ServerGreeting üzenet küldése
+            // amiben közöljük a többi user nevét
+            // <1><name1><name2><name3>...
             otherUsers.prepend("<1>");
             QByteArray ba = otherUsers.toLocal8Bit();
             const char *c_otherUsers = ba.data();
             m_pSocket[i]->write(c_otherUsers);
+
+            // NewClient üzenet a többi kliensnek
+            // <2><új username>
+            QString NewClientMsg = "<2><" + userName[i] + ">";
+            ba = NewClientMsg.toLocal8Bit();
+            const char *c_NewClientMsg = ba.data();
+
+            for(int j = 0; j < MaxClientNum; j++){
+                if(m_pSocket[j] != NULL && j != i)
+                    m_pSocket[j]->write(c_NewClientMsg);
+            }
         }
         // PlainText: egyszerű üzenetet küldtek adott személyeknek
         // teszt: broadcast először
         if(msgType == "<4>")
         {
+            // Levágjuk a cél user nevét
             j = str.indexOf(">", 0);
             QString destination = str;
             destination.resize(j+1);
+            destination.remove(0, 1);
+            destination.chop(1);
             str.remove(0, j+1);
 
 
+            // Összeállítjuk az üzenet keretet
+            // <4><küldő><üzenet>
+            str.prepend("<" + userName[i] + ">");
+            str.prepend("<4>");
+                emit textReceived("out: "+str);
             // QString -> char*
             QByteArray ba = str.toLocal8Bit();
             const char *c_str = ba.data();
 
-            // Megkeressük a destinationnak megfelelő user-t/socket-et
+            // Megkeressük a destinationnak megfelelő user-t és socket-et
             for(int x = 0; x < MaxClientNum; x++)
                 if(QString::compare(userName[x], destination, Qt::CaseInsensitive) == 0)//userName[x] == destination)
                     m_pSocket[x]->write(c_str);

@@ -21,8 +21,11 @@ public:
     virtual ~NetHandler();
 
     void Connect(QString addr);
+
     void setUserName(QString username){userName = username;}
     QString getUserName(){return userName;}
+    void setDestinationName(QString str){destinationName = str;}
+    QString getDestinationName(){return destinationName;}
 
 signals:
     void signalConnectionStatus(int status);
@@ -37,7 +40,8 @@ public slots:
 
 protected:
     QTcpSocket* m_pSocket;
-    QString userName;
+    QString userName;           // Saját felhasználónév
+    QString destinationName;    // Cél felhasználó neve
     char buf[1024];
 };
 
