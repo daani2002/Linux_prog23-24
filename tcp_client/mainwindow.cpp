@@ -27,6 +27,12 @@ MainWindow::MainWindow(QWidget *parent)
     // Cél felhasználó kiválasztása a listából kattintásra
     connect(ui->listWidget, &QListWidget::itemClicked,
             this, &MainWindow::setDestination);
+    // Check box alapján csatorna üzenet kijelzése
+    connect(ui->checkBox, &QCheckBox::clicked,
+           this, &MainWindow::setDestinationEveryone);
+    // Kilépő felhasználó törlése a listából
+    connect(m_pNetHandler, &NetHandler::removeUserItem,
+            this, &MainWindow::removeUserItem);
 
 }
 
@@ -56,7 +62,9 @@ void MainWindow::slotConnectionStatus(int status)
         break;
     case NetHandler::Disconnected:
         statusBar()->showMessage("Disconnected");
-        break;
+        // Töröljük a felhasználólistát
+        ui->listWidget->clear();
+        ui->listWidget->addItem(m_pNetHandler->getUserName() + " (te)");
     }
     if((status == NetHandler::Error) || (status == NetHandler::Disconnected))
     {
@@ -79,8 +87,12 @@ void MainWindow::returnPressed()
     // Szöveg megjelenítése
     ui->textEdit->append("<from you to " + m_pNetHandler->getDestinationName() + "> " + text);
     // Szöveg elküldése
-    //m_pNetHandler->packageSend(text);
-    m_pNetHandler->sendMessage(NetHandler::PlainText, text);
+    // Mindenkinek küldünk
+    if(ui->checkBox->isChecked())
+        m_pNetHandler->sendMessage(NetHandler::ChannelMessage, text);
+    // Egyetlen személynek
+    else
+        m_pNetHandler->sendMessage(NetHandler::PlainText, text);
 }
 
 void MainWindow::packageReceived(QString str)
@@ -102,7 +114,9 @@ void MainWindow::on_actionConnect_triggered()
 
 void MainWindow::on_actionStop_triggered()
 {
-    m_pNetHandler->slotDisconnected();
+    // ClientLeft üzenet küldése a szervernek (csak üzenetkód)
+    // <3>
+    m_pNetHandler->sendMessage(NetHandler::ClientLeft, "");
 }
 
 void MainWindow::readUserName()
@@ -125,28 +139,68 @@ void MainWindow::newUserItem(QString username)
     ui->listWidget->addItem(username);
 }
 
+// Kilépő user törlése a listWidget-ből
+void MainWindow::removeUserItem(QString username)
+{
+    // findItems egy listát ad vissza
+    QList<QListWidgetItem *> list = ui->listWidget->findItems(username, Qt::MatchContains);
+    QListWidgetItem* item = list.first();
+
+    int row = ui->listWidget->row(item);
+    ui->listWidget->takeItem(row);
+}
+
 // Cél user beállítása a kiválasztott listaelem alapján
 void MainWindow::setDestination(QListWidgetItem* item)
 {
-    QString name = item->text();
-    // Ha magunkat címezzük
-    if(ui->listWidget->currentRow() == 0)
-    {
-        ui->label->setText("Üzenet magamnak:");
-        // levágjuk a " (te)" végződéset
-        name.chop(5);
-        m_pNetHandler->setDestinationName(name);
-    }
+    QString name = item->text();;
+
+    // Ha mindenkinek üzenünk
+    if(ui->checkBox->isChecked())
+        ui->label->setText("Üzenet mindenkinek:");
     else
     {
-        ui->label->setText("Üzenet " + item->text() + "-nek:");
-        m_pNetHandler->setDestinationName(item->text());
+        // Ha magunkat címezzük
+        if(ui->listWidget->currentRow() == 0)
+        {
+            ui->label->setText("Üzenet magamnak:");
+            // levágjuk a " (te)" végződéset
+            name.chop(5);
+            m_pNetHandler->setDestinationName(name);
+        }
+        else
+        {
+            ui->label->setText("Üzenet " + item->text() + "-nek:");
+            m_pNetHandler->setDestinationName(item->text());
+        }
     }
 }
 
 
-
-
+//TODO: Ezt a kettőt összevonni !!!!!!
+void MainWindow::setDestinationEveryone()
+{
+    if(ui->checkBox->isChecked())
+        ui->label->setText("Üzenet mindenkinek:");
+    else
+    {
+        QListWidgetItem *item = ui->listWidget->currentItem();
+        QString name = item->text();
+        // Ha magunkat címezzük
+        if(ui->listWidget->currentRow() == 0)
+        {
+            ui->label->setText("Üzenet magamnak:");
+            // levágjuk a " (te)" végződéset
+            name.chop(5);
+            m_pNetHandler->setDestinationName(name);
+        }
+        else
+        {
+            ui->label->setText("Üzenet " + item->text() + "-nek:");
+            m_pNetHandler->setDestinationName(item->text());
+        }
+    }
+}
 
 
 

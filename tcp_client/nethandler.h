@@ -15,7 +15,8 @@ public:
                       ServerGreeting,   // Szerver közli a többi felhasználó nevét
                       NewClient,        // Új kliens csatlakozott, közölte nevét
                       ClientLeft,       // Egy kliens lecsatlakozott a szerverről
-                      PlainText};       // Üzenet küldése a megadott címzetteknek
+                      PlainText,        // Üzenet küldése a megadott címzetteknek
+                      ChannelMessage};  // Üzenet mindenkinek
 public:
     explicit NetHandler(QObject *parent = 0);
     virtual ~NetHandler();
@@ -31,6 +32,7 @@ signals:
     void signalConnectionStatus(int status);
     void packageReceived(QString str);
     void newUserItem(QString);
+    void removeUserItem(QString);
 
 public slots:
     void slotReadyRead();

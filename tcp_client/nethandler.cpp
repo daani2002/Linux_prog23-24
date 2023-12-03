@@ -40,6 +40,7 @@ void NetHandler::Connect(QString addr)
             this, SLOT(slotReadyRead()));
 
 
+
     // A connect() fuggveny meghivasaval kapcsolodunk a szerverhez.
     m_pSocket->connectToHost(addr, 3490);
     if (!m_pSocket->waitForConnected(5000)) {
@@ -66,10 +67,9 @@ void NetHandler::slotDisconnected()
     // Ha letezik meg kliens socket akkor lezarjuk.
     if (m_pSocket) {
         m_pSocket->deleteLater();
+        //m_pSocket[i]->flush();
         m_pSocket = NULL;
     }
-
-    // Jelezzuk a kapcsolat allapotanak valtozasat.
     emit signalConnectionStatus(Disconnected);
 
 }
@@ -111,7 +111,7 @@ void NetHandler::slotReadyRead()
             emit newUserItem(newWidgetItem);
         }
     }
-    // SNewClient: új kliens csatlakozott, közölte a nevét
+    // NewClient: új kliens csatlakozott, közölte a nevét
     // <2><new username>
     if(msgType == "<2>")
     {
@@ -132,20 +132,34 @@ void NetHandler::slotReadyRead()
         emit newUserItem(newWidgetItem);
     }
 
+    // ClientLeft: egy klines lecsatlakozását jelezte a szerver
+    // <3><Küldő>
     // PlainText: egyszerű üzenet érkezett
     // <4><Küldő><Üzenet>
-    if(msgType == "<4>")
+    // ChannelMessage: üzenet mindenkienk
+    // <5><Küldő><Üzenet>
+    if(msgType == "<3>" || msgType == "<4>" || msgType == "<5>")
     {
         // Leválasztom a küldő nevét
         j = str.indexOf(">", 0);
         QString Sender = str;
         Sender.resize(j);
+        Sender.remove(0, 1);
+        // Üzenet csonkolása
         str.remove(0, j+1);
         str.remove(0, 1);
         str.chop(1);
 
-        emit packageReceived(Sender + " to you>: " + str);
+        if(msgType == "<3>"){
+            emit packageReceived("<" + Sender + " left>");
+            emit removeUserItem(Sender);
+        }
+        if(msgType == "<4>")
+            emit packageReceived("<from " + Sender + " to you> " + str);
+        if(msgType == "<5>")
+            emit packageReceived("<from " + Sender + " to everyone> " + str);
     }
+
 
 }
 
@@ -172,15 +186,22 @@ void NetHandler::sendMessage(MessageType msgType, QString str)
         str.append(">");
         packageSend(str);
         break;
-    case ServerGreeting:
-        break;
-    case NewClient:
-        break;
+    case ServerGreeting:    //*
+        break;              //
+    case NewClient:         //  Szerver küldi őket
+        break;              //*
     case ClientLeft:
+        str = "<3>";
+        packageSend(str);
         break;
     case PlainText:
         str.insert(0, "<4>");
         str.insert(3, "<" + destinationName + "><");
+        str.append(">");
+        packageSend(str);
+        break;
+    case ChannelMessage:
+        str.insert(0, "<5>");
         str.append(">");
         packageSend(str);
         break;

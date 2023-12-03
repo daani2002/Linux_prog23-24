@@ -5,7 +5,7 @@
 #include <QtNetwork>
 #include "mainwindow.h"
 
-static const int MaxClientNum = 20;
+static const int MaxClientNum = 6;
 
 class Server : public QObject
 {

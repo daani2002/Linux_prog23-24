@@ -61,11 +61,37 @@ void Server::slotDisconnected()
 {
     disconnect(this, SLOT(slotDisconnected()));
 
+    QString username;
+
     // Ha letezik meg kliens socket akkor lezarjuk.
     for(int i = 0; i < MaxClientNum; i++)
     if (m_pSocket[i] && !m_pSocket[i]->isOpen()) {
         m_pSocket[i]->deleteLater();
         m_pSocket[i] = NULL;
+    }
+
+    // Megkeressük a lezárt socket-hez tartozó user nevet
+    for(int i = 0; i < MaxClientNum; i++)
+        if(m_pSocket[i] == NULL && userName[i] != "not registered")
+        {
+            username = userName[i];
+            userName[i] = "not registered";
+                emit textReceived(username);
+        }
+
+    // Többi kliensnek ClientLeft üzenet
+    // <3>
+    QString str = "<3>";
+    str.append("<" + username + ">");
+    QByteArray ba = str.toLocal8Bit();
+    const char *c_str = ba.data();
+    for(int i = 0; i < MaxClientNum; i++)
+    {
+        if(m_pSocket[i])
+        {
+            m_pSocket[i]->write(c_str);
+            //emit textReceived("out: " + str);
+        }
     }
 }
 
@@ -77,9 +103,8 @@ void Server::slotReadyRead()
     if(m_pSocket[i] != NULL && m_pSocket[i]->bytesAvailable()){
         // Temporalis bufferba olvasunk.
         int len = m_pSocket[i]->read(buf, sizeof(buf));
-        // Loopback teszt
-            //m_pSocket[i]->write(buf, len);
-        // Char* -> QString konverzió, így könnyebb a sting manipuláció
+
+        // Char* -> QString konverzió, így könnyebb a string manipuláció
         QByteArray ba(buf, len);
         QString str(ba);
             // Jelezzük az olvasást a megjelenítő ablaknak
@@ -105,14 +130,14 @@ void Server::slotReadyRead()
             // Összeírjuk a többi felhasználónevet
             QString otherUsers;
             for(int x = 0; x < MaxClientNum; x++)
-                if(m_pSocket[x] != NULL)
+                if(m_pSocket[x] != NULL && x != i)
                     otherUsers.append("<" + userName[x] + ">");
 
             // ServerGreeting üzenet küldése
             // amiben közöljük a többi user nevét
             // <1><name1><name2><name3>...
             otherUsers.prepend("<1>");
-            QByteArray ba = otherUsers.toLocal8Bit();
+            ba = otherUsers.toLocal8Bit();
             const char *c_otherUsers = ba.data();
             m_pSocket[i]->write(c_otherUsers);
 
@@ -127,8 +152,41 @@ void Server::slotReadyRead()
                     m_pSocket[j]->write(c_NewClientMsg);
             }
         }
+
+        // ClientLeft: egy kliens lecsatlakozott
+        // érkezett: <3>
+        // küldött:  <3><küldő>
+        if(msgType == "<3>")
+        {
+            str.append("<3><" + userName[i] + ">");
+            ba = str.toLocal8Bit();
+            const char* c_str = ba.data();
+
+            // A többi kliensnek küldjük a kilépő nevét
+            for(int x = 0; x < MaxClientNum; x++)
+            {
+                if(m_pSocket[x] != NULL && x != i)
+                {
+                    m_pSocket[x]->write(c_str);
+                        emit textReceived("out: " + str);
+                }
+            }
+
+            // Kikotjuk a socket lezarasanak erzekeleset, mert kulonben a sajatunkat is
+            // erzekelnenk.
+            disconnect(this, SLOT(slotDisconnected()));
+
+            // Ha letezik meg kliens socket akkor lezarjuk.
+            if (m_pSocket[i]) {
+                m_pSocket[i]->deleteLater();
+                //m_pSocket[i]->flush();
+                m_pSocket[i] = NULL;
+                userName[i] = "not registered";
+            }
+        }
+
         // PlainText: egyszerű üzenetet küldtek adott személyeknek
-        // teszt: broadcast először
+        // érkezett: <4><cél><üzenet>
         if(msgType == "<4>")
         {
             // Levágjuk a cél user nevét
@@ -146,7 +204,7 @@ void Server::slotReadyRead()
             str.prepend("<4>");
                 emit textReceived("out: "+str);
             // QString -> char*
-            QByteArray ba = str.toLocal8Bit();
+            ba = str.toLocal8Bit();
             const char *c_str = ba.data();
 
             // Megkeressük a destinationnak megfelelő user-t és socket-et
@@ -154,6 +212,26 @@ void Server::slotReadyRead()
                 if(QString::compare(userName[x], destination, Qt::CaseInsensitive) == 0)//userName[x] == destination)
                     m_pSocket[x]->write(c_str);
 
+        }
+        // ChannelMessage: mindenkinek továbbítjuk az üzenetet
+        // érkezett: <5><üzenet>
+        // küldött:  <5><küldő><üzenet>
+        if(msgType == "<5>")
+        {
+            // Küldő név beszúrása
+            str.prepend("<5><" + userName[i] + "><");
+            // QString -> char*
+            ba = str.toLocal8Bit();
+            const char *c_str = ba.data();
+
+            for(int x = 0; x < MaxClientNum; x++)
+            {
+                if(m_pSocket[x] != NULL && x != i)
+                {
+                    m_pSocket[x]->write(c_str);
+                        emit textReceived("out: " + str);
+                }
+            }
         }
 
     }

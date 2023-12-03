@@ -28,6 +28,7 @@ public slots:
     void returnPressed();
     void packageReceived(QString str);
     void newUserItem(QString);
+    void removeUserItem(QString);
 
 private:
     Ui::MainWindow *ui;
@@ -37,6 +38,7 @@ private slots:
     void on_actionConnect_triggered();
     void on_actionStop_triggered();
     void setDestination(QListWidgetItem* item);
+    void setDestinationEveryone();
 
 };
 #endif // MAINWINDOW_H
