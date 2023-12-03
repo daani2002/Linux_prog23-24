@@ -62,7 +62,7 @@ void MainWindow::slotConnectionStatus(int status)
         break;
     case NetHandler::Disconnected:
         statusBar()->showMessage("Disconnected");
-        // Töröljük a felhasználólistát
+        // Töröljük a felhasználólistát, kivéve saját név
         ui->listWidget->clear();
         ui->listWidget->addItem(m_pNetHandler->getUserName() + " (te)");
     }

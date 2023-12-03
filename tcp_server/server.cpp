@@ -43,7 +43,8 @@ void Server::slotIncomingConn()
 {
     QTcpSocket* pSocket = m_pServSocket->nextPendingConnection();
 
-    connect(pSocket, SIGNAL(disconnected()), this, SLOT(slotDisconnected()));
+    // NEM MŰKÖDÖTT JÓL
+    //connect(pSocket, SIGNAL(disconnected()), this, SLOT(slotDisconnected()));
 
     // 20 kapcsolatot fogadunk elsőkörben, mindig az első szabad socket pointert használjuk
     for(int i = 0; i < MaxClientNum; i++)
@@ -57,6 +58,7 @@ void Server::slotIncomingConn()
 }
 
 // A kapcsolat lezarasanak erzekelese.
+// NEM IGAZÁN MŰKÖDIK
 void Server::slotDisconnected()
 {
     disconnect(this, SLOT(slotDisconnected()));
@@ -90,7 +92,7 @@ void Server::slotDisconnected()
         if(m_pSocket[i])
         {
             m_pSocket[i]->write(c_str);
-            //emit textReceived("out: " + str);
+            emit textReceived("out: " + str);
         }
     }
 }
@@ -174,12 +176,11 @@ void Server::slotReadyRead()
 
             // Kikotjuk a socket lezarasanak erzekeleset, mert kulonben a sajatunkat is
             // erzekelnenk.
-            disconnect(this, SLOT(slotDisconnected()));
+            //disconnect(this, SLOT(slotDisconnected()));
 
             // Ha letezik meg kliens socket akkor lezarjuk.
             if (m_pSocket[i]) {
                 m_pSocket[i]->deleteLater();
-                //m_pSocket[i]->flush();
                 m_pSocket[i] = NULL;
                 userName[i] = "not registered";
             }
