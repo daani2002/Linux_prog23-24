@@ -33,6 +33,7 @@ signals:
     void packageReceived(QString str);
     void newUserItem(QString);
     void removeUserItem(QString);
+    void controlMessage(QString, QString);
 
 public slots:
     void slotReadyRead();

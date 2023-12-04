@@ -155,7 +155,9 @@ void NetHandler::slotReadyRead()
             emit removeUserItem(Sender);
         }
         if(msgType == "<4>")
-            emit packageReceived("<from " + Sender + " to you> " + str);
+            // Vizsgálni kell, hogy nem tiltott-e a küldő
+            emit controlMessage(Sender, str);
+            //emit packageReceived("<from " + Sender + " to you> " + str);
         if(msgType == "<5>")
             emit packageReceived("<from " + Sender + " to everyone> " + str);
     }
@@ -207,7 +209,6 @@ void NetHandler::sendMessage(MessageType msgType, QString str)
         break;
     }
 }
-
 
 
 

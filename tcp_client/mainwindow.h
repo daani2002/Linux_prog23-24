@@ -37,12 +37,13 @@ private:
 private slots:
     void on_actionConnect_triggered();
     void on_actionStop_triggered();
-    void setDestination(QListWidgetItem* item);
-    void setDestinationEveryone();
+    void setDestination();
+    void blockUserItem(QListWidgetItem*);
+    void unblockUserItem(QListWidgetItem*);
+    void slotControlMessage(QString, QString);
 
 };
 #endif // MAINWINDOW_H
-
 
 
 

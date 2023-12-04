@@ -21,15 +21,24 @@ MainWindow::MainWindow(QWidget *parent)
     // Szöveg érkezett - megjelenítés
     connect(m_pNetHandler, &NetHandler::packageReceived,
             this, &MainWindow::packageReceived);
+    // Személyes üezenet érkezett, ellenőrizni kell a küldőt
+    connect(m_pNetHandler, &NetHandler::controlMessage,
+            this, &MainWindow::slotControlMessage);
     // Felhasználólista bővítése
     connect(m_pNetHandler, &NetHandler::newUserItem,
             this, &MainWindow::newUserItem);
     // Cél felhasználó kiválasztása a listából kattintásra
     connect(ui->listWidget, &QListWidget::itemClicked,
             this, &MainWindow::setDestination);
-    // Check box alapján csatorna üzenet kijelzése
+    // Check box alapján csatornaüzenet beállítása
     connect(ui->checkBox, &QCheckBox::clicked,
-           this, &MainWindow::setDestinationEveryone);
+           this, &MainWindow::setDestination);
+    // Felhasználó tiltása a listából duplakattintással
+    connect(ui->listWidget, & QListWidget::itemDoubleClicked,
+            this, &MainWindow::blockUserItem);
+    // Tiltott felhasználó feloldása
+    connect(ui->listWidget_2, &QListWidget::itemDoubleClicked,
+            this, &MainWindow::unblockUserItem);
     // Kilépő felhasználó törlése a listából
     connect(m_pNetHandler, &NetHandler::removeUserItem,
             this, &MainWindow::removeUserItem);
@@ -84,20 +93,39 @@ void MainWindow::returnPressed()
     QString text = ui->lineEdit->text();
     // Töröljük a beírt szöveget
     ui->lineEdit->clear();
-    // Szöveg megjelenítése
-    ui->textEdit->append("<from you to " + m_pNetHandler->getDestinationName() + "> " + text);
+
     // Szöveg elküldése
     // Mindenkinek küldünk
-    if(ui->checkBox->isChecked())
+    if(ui->checkBox->isChecked()){
         m_pNetHandler->sendMessage(NetHandler::ChannelMessage, text);
+        // Szöveg megjelenítése
+        ui->textEdit->append("<from you to everyone> " + text);
+    }
     // Egyetlen személynek
-    else
+    else if(m_pNetHandler->getDestinationName() != "notregistered"){
         m_pNetHandler->sendMessage(NetHandler::PlainText, text);
+        // Szöveg megjelenítése
+        ui->textEdit->append("<from you to " + m_pNetHandler->getDestinationName() + "> " + text);
+    }
+    // Hiba: nincs célszemély megjelölve
+    else
+        ui->textEdit->append("< Válassz címzettet! >");
 }
 
 void MainWindow::packageReceived(QString str)
 {
     ui->textEdit->append(str);
+}
+
+// Ellenőrizzük, az üzenet feladója nincs-e tiltólistán (azaz a felhasználó listán van)
+void MainWindow::slotControlMessage(QString Sender, QString msg)
+{
+    for(int i = 0; i < ui->listWidget->count(); i++)
+        if(Sender == ui->listWidget->item(i)->text())
+        {
+            ui->textEdit->append("<from " + Sender + " to you> " + msg);
+            break;
+        }
 }
 
 void MainWindow::on_actionConnect_triggered()
@@ -150,35 +178,9 @@ void MainWindow::removeUserItem(QString username)
     ui->listWidget->takeItem(row);
 }
 
-// Cél user beállítása a kiválasztott listaelem alapján
-void MainWindow::setDestination(QListWidgetItem* item)
-{
-    QString name = item->text();;
-
-    // Ha mindenkinek üzenünk
-    if(ui->checkBox->isChecked())
-        ui->label->setText("Üzenet mindenkinek:");
-    else
-    {
-        // Ha magunkat címezzük
-        if(ui->listWidget->currentRow() == 0)
-        {
-            ui->label->setText("Üzenet magamnak:");
-            // levágjuk a " (te)" végződéset
-            name.chop(5);
-            m_pNetHandler->setDestinationName(name);
-        }
-        else
-        {
-            ui->label->setText("Üzenet " + item->text() + "-nek:");
-            m_pNetHandler->setDestinationName(item->text());
-        }
-    }
-}
-
-
-//TODO: Ezt a kettőt összevonni !!!!!!
-void MainWindow::setDestinationEveryone()
+// A felhasználó lista vagy a check box kattintásával
+// kiválasztható az üzenet célszemélye vagy csatornaüzenet
+void MainWindow::setDestination()
 {
     if(ui->checkBox->isChecked())
         ui->label->setText("Üzenet mindenkinek:");
@@ -202,7 +204,39 @@ void MainWindow::setDestinationEveryone()
     }
 }
 
+// Felhasználó tiltása
+// Kivesszük a felhasználó listából
+// Áttesszük a tiltólistába
+void MainWindow::blockUserItem(QListWidgetItem* item)
+{
+    int row = ui->listWidget->currentRow();
+    QString name = item->text();
 
+    if(row != 0){
+        // Hozzáadjuk a nevet a tiltólistához
+        ui->listWidget_2->addItem(name);
+        // Eltávolítjuk az erdetiből
+        ui->listWidget->takeItem(row);
+        // Az imént tiltott személy volt kattintással kijelölve,
+        // ezért frissítjük a címzettet
+        setDestination();
+    }
+}
+
+// Tiltás feloldása
+// Kivesszük a tiltólistából
+// Áttesszük a felhasználó listába
+void MainWindow::unblockUserItem(QListWidgetItem* item)
+{
+    int row = ui->listWidget_2->currentRow();
+    QString name = item->text();
+
+    // Eltávolítjuk a tiltólistából
+    ui->listWidget_2->takeItem(row);
+    // Hozzáadjuk a nevet a felhasználókhoz
+    ui->listWidget->addItem(name);
+
+}
 
 
 
