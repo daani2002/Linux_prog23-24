@@ -5,7 +5,6 @@ NetHandler::NetHandler(QObject *parent) :
 {
     m_pSocket = NULL;
     destinationName = "notregistered";
-    password = "12345";     // bedrótozzuk a jelszót
 }
 
 NetHandler::~NetHandler()
@@ -50,19 +49,8 @@ void NetHandler::Connect(QString addr)
         return;
     }
 
-    // Várjuk a seed érkezését------
-    /*m_pSocket->waitForReadyRead(5);
-    char buf[1024];
-    int len = m_pSocket->read(buf, sizeof(buf));
-    QByteArray ba(buf, len);
-    QString str(ba);
-    emit packageReceived(str);*/
-
-
     // Jelezzuk a kapcsolat allapotanak valtozasat, vagyis hogy sikerult.
     emit signalConnectionStatus(Connected);
-
-
 
 }
 
@@ -78,7 +66,6 @@ void NetHandler::slotDisconnected()
     // Ha letezik meg kliens socket akkor lezarjuk.
     if (m_pSocket) {
         m_pSocket->deleteLater();
-        //m_pSocket[i]->flush();
         m_pSocket = NULL;
     }
     emit signalConnectionStatus(Disconnected);
@@ -94,7 +81,7 @@ void NetHandler::slotReadyRead()
     QByteArray bytearray(buf, len);
     QString str(bytearray);
 
-        emit packageReceived("raw: "+str);
+        //emit packageReceived("raw: "+str);
 
     int j = 0;
     j = str.indexOf(">", 0);
@@ -104,6 +91,7 @@ void NetHandler::slotReadyRead()
     str.remove(0, j+1);
 
     // Seed érkezett az azonosításhoz
+    // <6><seed>
     if(msgType == "<6>")
     {
         //emit packageReceived(str);
@@ -120,7 +108,6 @@ void NetHandler::slotReadyRead()
         QByteArray ba = seed.toLocal8Bit();
         hashObject.addData(ba);
         ba = hashObject.result();
-        emit packageReceived("hash code: " + QString(ba));
 
         // jelszó beallítása
         password = QString(ba);

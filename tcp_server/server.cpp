@@ -55,26 +55,27 @@ void Server::slotIncomingConn()
         break;
     }
 
-    // Seed előállítása--------------------
+    // Seed előállítása aktuális időpont alapján
     QTime current = QTime::currentTime();
     int msecs = current.msec();
     QString seed = QString::number(msecs);
     QString str;
+    // Seed továbbításához használt szabványos üzenet
     str = "<6><" + seed + ">";
     QByteArray ba = str.toLocal8Bit();
     const char *c_str = ba.data();
     pSocket->write(c_str);
-
-    textReceived("out: "+str);
 
     // Hash kódolás
     QCryptographicHash hashObject(QCryptographicHash::Sha1);
     ba = seed.toLocal8Bit();
     hashObject.addData(ba);
     ba = hashObject.result();
+    // Hash kód kiírása
+    emit textReceived("Hash: " + QString(ba));
 
-    textReceived("hash kód: " + QString(ba));
-
+    // Szerver jelszó állítása a hash kódra
+    // Jó esetben a kliens oldalon is ez jön majd ki
     serverPassword = QString(ba);
 }
 
@@ -106,6 +107,7 @@ void Server::slotDisconnected()
     // <3>
     QString str = "<3>";
     str.append("<" + username + ">");
+    // QString->char* konverzió
     QByteArray ba = str.toLocal8Bit();
     const char *c_str = ba.data();
     for(int i = 0; i < MaxClientNum; i++)
@@ -160,9 +162,12 @@ void Server::slotReadyRead()
             Psw.remove(0, 1);
 
 
-            // Ha nem egyeznek nem regisztráljuk a klienst
-            if(Psw != serverPassword)
+            // Ha nem egyeznek, nem regisztráljuk a klienst
+            if(Psw != serverPassword){
+                m_pSocket[i]->deleteLater();
+                m_pSocket[i] = NULL;
                 return;
+            }
 
             // Elmentjük a socket indexén
             userName[i] = Sender;
@@ -188,8 +193,10 @@ void Server::slotReadyRead()
             const char *c_NewClientMsg = ba.data();
 
             for(int j = 0; j < MaxClientNum; j++){
-                if(m_pSocket[j] != NULL && j != i)
+                if(m_pSocket[j] != NULL && j != i){
                     m_pSocket[j]->write(c_NewClientMsg);
+                    emit textReceived("out: " + NewClientMsg);
+                }
             }
         }
 
@@ -260,7 +267,7 @@ void Server::slotReadyRead()
         if(msgType == "<5>")
         {
             // Küldő név beszúrása
-            str.prepend("<5><" + userName[i] + "><");
+            str.prepend("<5><" + userName[i] + ">");
             // QString -> char*
             ba = str.toLocal8Bit();
             const char *c_str = ba.data();
