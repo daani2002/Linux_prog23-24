@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QtNetwork>
+#include <QCryptographicHash>
 
 class NetHandler : public QObject
 {
@@ -24,7 +25,9 @@ public:
     void Connect(QString addr);
 
     void setUserName(QString username){userName = username;}
+    void setPassword(QString pswd){password = pswd;}
     QString getUserName(){return userName;}
+    QString getPassword(){return password;}
     void setDestinationName(QString str){destinationName = str;}
     QString getDestinationName(){return destinationName;}
 
@@ -44,6 +47,7 @@ public slots:
 protected:
     QTcpSocket* m_pSocket;
     QString userName;           // Saját felhasználónév
+    QString password;           // Jelszó az autentikációra
     QString destinationName;    // Cél felhasználó neve
     char buf[1024];
 };

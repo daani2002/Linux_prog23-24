@@ -66,8 +66,6 @@ void MainWindow::slotConnectionStatus(int status)
         break;
     case NetHandler::Connected:
         statusBar()->showMessage("Connected");
-        // A köszöntő üzenetben közöljük a szerverrel a nevünket
-        m_pNetHandler->sendMessage(NetHandler::ClientGreeting, m_pNetHandler->getUserName());
         break;
     case NetHandler::Disconnected:
         statusBar()->showMessage("Disconnected");

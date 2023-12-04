@@ -29,6 +29,7 @@ protected:
     QTcpServer* m_pServSocket;
     QTcpSocket* m_pSocket[MaxClientNum];
     QString     userName[MaxClientNum];
+    QString     serverPassword;
 
     // Temporalis buffer az erkezo adatok tarolasara.
     char buf[1024];

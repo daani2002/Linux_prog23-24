@@ -55,6 +55,27 @@ void Server::slotIncomingConn()
         break;
     }
 
+    // Seed előállítása--------------------
+    QTime current = QTime::currentTime();
+    int msecs = current.msec();
+    QString seed = QString::number(msecs);
+    QString str;
+    str = "<6><" + seed + ">";
+    QByteArray ba = str.toLocal8Bit();
+    const char *c_str = ba.data();
+    pSocket->write(c_str);
+
+    textReceived("out: "+str);
+
+    // Hash kódolás
+    QCryptographicHash hashObject(QCryptographicHash::Sha1);
+    ba = seed.toLocal8Bit();
+    hashObject.addData(ba);
+    ba = hashObject.result();
+
+    textReceived("hash kód: " + QString(ba));
+
+    serverPassword = QString(ba);
 }
 
 // A kapcsolat lezarasanak erzekelese.
@@ -119,16 +140,33 @@ void Server::slotReadyRead()
         msgType.resize(j+1);
         str.remove(0, j+1);
 
-        // ClientGreeting: közölték a sockethez tartozó felhasználónevet
+        // ClientGreeting: közölték a sockethez tartozó felhasználónevet és jelszót
         // Visszaküldjük a többiek nevét
         // A többieknek elküldjük az új user nevét
         if(msgType == "<0>")
         {
-            // Kivesszük a keretből
-            str.remove(0, 1);
-            str.chop(1);
+            // Kiolvassuk a küldő nevét
+            j = str.indexOf(">", 0);
+            QString Sender = str;
+            Sender.resize(j);
+            Sender.remove(0, 1);
+            // Csonkoljuk az üzenetet
+            str.remove(0, j+1);
+
+            // Kiolvassuk a jelszót
+            j = str.indexOf(">", 0);
+            QString Psw = str;
+            Psw.resize(j);
+            Psw.remove(0, 1);
+
+
+            // Ha nem egyeznek nem regisztráljuk a klienst
+            if(Psw != serverPassword)
+                return;
+
             // Elmentjük a socket indexén
-            userName[i] = str;
+            userName[i] = Sender;
+
             // Összeírjuk a többi felhasználónevet
             QString otherUsers;
             for(int x = 0; x < MaxClientNum; x++)
@@ -203,7 +241,7 @@ void Server::slotReadyRead()
             // <4><küldő><üzenet>
             str.prepend("<" + userName[i] + ">");
             str.prepend("<4>");
-                emit textReceived("out: "+str);
+
             // QString -> char*
             ba = str.toLocal8Bit();
             const char *c_str = ba.data();
@@ -211,8 +249,10 @@ void Server::slotReadyRead()
             // Megkeressük a destinationnak megfelelő user-t és socket-et
             for(int x = 0; x < MaxClientNum; x++)
                 if(QString::compare(userName[x], destination, Qt::CaseInsensitive) == 0)//userName[x] == destination)
+                {
                     m_pSocket[x]->write(c_str);
-
+                    emit textReceived("out: "+str);
+                }
         }
         // ChannelMessage: mindenkinek továbbítjuk az üzenetet
         // érkezett: <5><üzenet>
@@ -227,7 +267,7 @@ void Server::slotReadyRead()
 
             for(int x = 0; x < MaxClientNum; x++)
             {
-                if(m_pSocket[x] != NULL && x != i)
+                if(m_pSocket[x] != NULL && x != i)  // magunknak nem küldjük megint
                 {
                     m_pSocket[x]->write(c_str);
                         emit textReceived("out: " + str);

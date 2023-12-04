@@ -5,6 +5,7 @@ NetHandler::NetHandler(QObject *parent) :
 {
     m_pSocket = NULL;
     destinationName = "notregistered";
+    password = "12345";     // bedrótozzuk a jelszót
 }
 
 NetHandler::~NetHandler()
@@ -39,8 +40,6 @@ void NetHandler::Connect(QString addr)
     connect(m_pSocket, SIGNAL(readyRead()),
             this, SLOT(slotReadyRead()));
 
-
-
     // A connect() fuggveny meghivasaval kapcsolodunk a szerverhez.
     m_pSocket->connectToHost(addr, 3490);
     if (!m_pSocket->waitForConnected(5000)) {
@@ -51,8 +50,20 @@ void NetHandler::Connect(QString addr)
         return;
     }
 
+    // Várjuk a seed érkezését------
+    /*m_pSocket->waitForReadyRead(5);
+    char buf[1024];
+    int len = m_pSocket->read(buf, sizeof(buf));
+    QByteArray ba(buf, len);
+    QString str(ba);
+    emit packageReceived(str);*/
+
+
     // Jelezzuk a kapcsolat allapotanak valtozasat, vagyis hogy sikerult.
     emit signalConnectionStatus(Connected);
+
+
+
 }
 
 // A kapcsolat lezarasanak erzekelese.
@@ -83,7 +94,7 @@ void NetHandler::slotReadyRead()
     QByteArray bytearray(buf, len);
     QString str(bytearray);
 
-        //emit packageReceived("raw: "+str);
+        emit packageReceived("raw: "+str);
 
     int j = 0;
     j = str.indexOf(">", 0);
@@ -92,6 +103,33 @@ void NetHandler::slotReadyRead()
     msgType.resize(j+1);
     str.remove(0, j+1);
 
+    // Seed érkezett az azonosításhoz
+    if(msgType == "<6>")
+    {
+        //emit packageReceived(str);
+        QString seed;
+        j = str.indexOf(">", 0);
+        // Leválasztom a seed-et
+        seed = str;
+        seed.resize(j+1);
+        seed.chop(1);
+        seed.remove(0, 1);
+
+        // Create a hash code
+        QCryptographicHash hashObject(QCryptographicHash::Sha1);
+        QByteArray ba = seed.toLocal8Bit();
+        hashObject.addData(ba);
+        ba = hashObject.result();
+        emit packageReceived("hash code: " + QString(ba));
+
+        // jelszó beallítása
+        password = QString(ba);
+
+        // A köszöntő üzenetben közöljük a szerverrel a nevünket, jelszavunkat
+        QString greetingMsg = userName + "><" + password;
+        sendMessage(ClientGreeting, greetingMsg);
+
+    }
     // ServerGreeting: közölték a többi user nevét
     // <1><name1><name2><name3>...
     if(msgType == "<1>")
@@ -203,7 +241,7 @@ void NetHandler::sendMessage(MessageType msgType, QString str)
         packageSend(str);
         break;
     case ChannelMessage:
-        str.insert(0, "<5>");
+        str.insert(0, "<5><");
         str.append(">");
         packageSend(str);
         break;
